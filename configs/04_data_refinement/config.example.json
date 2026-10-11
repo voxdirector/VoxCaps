@@ -1,0 +1,32 @@
+{
+  "filters": {
+    "min_duration": 1.0,
+    "max_single_duration": 60.0,
+    "max_multi_duration": 120.0,
+    "quality_min": {
+      "pesq": 2.0,
+      "stoi": 0.85,
+      "si_sdr": 0.0,
+      "mos": 2.5
+    }
+  },
+  "description_model": {
+    "model_family": "Qwen3.5-Omni",
+    "endpoint": "https://WORKSPACE_ID.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/chat/completions",
+    "model": "qwen3.5-omni-plus",
+    "key_env": "DASHSCOPE_API_KEY",
+    "auth_scheme": "bearer",
+    "timeout": 360,
+    "max_tokens": 4096,
+    "stream": true,
+    "modalities": [
+      "text"
+    ]
+  },
+  "quality_models": {
+    "device": "cpu",
+    "squim_reference_audio": "references/nonmatching_clean_speech.wav",
+    "dnsmos_primary_model": "models/DNSMOS/sig_bak_ovr.onnx",
+    "dnsmos_p808_model": "models/DNSMOS/model_v8.onnx"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "device": "cpu",
+  "uvr_model_name": "MDX23C-8KFFT-InstVoc_HQ",
+  "uvr_model_root": "models/uvr",
+  "uvr_precision": "fp32",
+  "fun_asr_nano_model": "models/Fun-ASR-Nano-2512",
+  "sensevoice_model": "models/SenseVoiceSmall",
+  "forced_aligner_model": "models/Qwen3-ForcedAligner-0.6B",
+  "aligner_dtype": "bfloat16",
+  "aligner_attention": "sdpa",
+  "speaker_model_cache": "models/speaker_models",
+  "hub": "hf"
+}

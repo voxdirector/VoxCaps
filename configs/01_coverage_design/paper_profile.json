@@ -1,0 +1,42 @@
+{
+  "media_families": [
+    "audiobook",
+    "advertising",
+    "animation",
+    "short_drama",
+    "podcast",
+    "film"
+  ],
+  "languages": [
+    "zh",
+    "en"
+  ],
+  "context_axes": [
+    "speaker_density",
+    "recording_condition",
+    "character_type",
+    "location",
+    "sound_field",
+    "persistent_ambience",
+    "delivery_pattern",
+    "local_acoustic_events"
+  ],
+  "targeted_synthetic_subsets": {
+    "elderly_timbres": {
+      "paper_utterances": 100000,
+      "paper_mean_duration_s": 10
+    },
+    "short_utterances": {
+      "paper_utterances": 100000,
+      "paper_mean_duration_s": 1,
+      "lower_duration_exempt": true
+    },
+    "difficult_pronunciation": {
+      "paper_utterances": 100000,
+      "paper_mean_duration_s": 12,
+      "teacher_only_reading_hints": true
+    }
+  },
+  "teacher_model_family": "CosyVoice3",
+  "student_text": "original_orthography"
+}

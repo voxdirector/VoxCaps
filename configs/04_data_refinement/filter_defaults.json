@@ -1,0 +1,11 @@
+{
+  "min_duration": 1.0,
+  "max_single_duration": 60.0,
+  "max_multi_duration": 120.0,
+  "quality_min": {
+    "pesq": 2.0,
+    "stoi": 0.85,
+    "si_sdr": 0.0,
+    "mos": 2.5
+  }
+}
