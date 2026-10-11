@@ -1,4 +1,4 @@
-"""Recovered audio annotation templates; legacy four-field JSON interface."""
+"""Audio annotation prompts with Environment, Speakers and Content scopes."""
 
 VOXCAPS_AUDIO_CAPTION_TEMPLATE = {
     "system_prompt": """

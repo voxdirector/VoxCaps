@@ -44,8 +44,15 @@ def annotation_prompts(record: dict) -> tuple[str, str]:
 
 
 def annotate_record(record: dict, base, backend) -> dict:
+    if not isinstance(record.get("id"), str) or not record["id"].strip():
+        raise ValueError("annotation_record_id_is_required")
+    if not isinstance(record.get("audio"), str) or not record["audio"]:
+        raise ValueError("annotation_audio_path_is_required")
+    audio = (base / record["audio"]).resolve()
+    if not audio.is_file():
+        raise ValueError("annotation_audio_not_found")
     system, user = annotation_prompts(record)
-    annotation = backend(base / record["audio"], system, user)
+    annotation = backend(audio, system, user)
     if set(annotation) != {"environment", "speakers", "content"}:
         raise ValueError("annotator_must_return_exactly_three_scopes")
-    return {**record, "annotation": annotation}
+    return {**record, "audio": str(audio), "annotation": annotation}

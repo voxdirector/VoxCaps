@@ -80,7 +80,7 @@ def preprocess_source(record: dict, base: Path, output: Path, models) -> list[di
                     mapping.setdefault(speaker, "S" + str(len(mapping) + 1))
                     tmp = scratch / f"turn_{index}_{turn_index}"
                     segment_pair(mixture, vocal, start, end, tmp)
-                    languages = record.get("languages", ["zh"])
+                    languages = record.get("languages") or ["zh"]
                     if isinstance(languages, str):
                         languages = [languages]
                     language = languages[0]

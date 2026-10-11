@@ -5,8 +5,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from .manifest import SYNTHETIC_SUBSETS
-
 INITIALS = re.compile(r"^(zh|ch|sh|[bpmfdtnlgkhjqxrzcsyw])")
 
 
@@ -54,15 +52,11 @@ def teacher_text(
 
 
 def validate_job(job: dict) -> None:
-    if job.get("synthetic_subset") not in SYNTHETIC_SUBSETS:
-        raise ValueError("synthesis_requires_one_of_three_paper_subsets")
     if not isinstance(job.get("id"), str) or not re.fullmatch(r"[A-Za-z0-9_-]+", job["id"]):
         raise ValueError("synthesis_id_must_be_safe_filename")
     for name in ("student_text", "reference_audio", "reference_transcript"):
         if not isinstance(job.get(name), str) or not job[name].strip():
             raise ValueError(f"synthesis_missing:{name}")
-    if job["synthetic_subset"] == "elderly_timbres" and job.get("reference_age_group") != "elderly":
-        raise ValueError("elderly_subset_requires_audited_elderly_reference")
 
 
 def synthesize_job(job: dict, model, base: Path, output: Path) -> dict:
@@ -71,8 +65,6 @@ def synthesize_job(job: dict, model, base: Path, output: Path) -> dict:
     if not reference.is_file():
         raise ValueError("synthesis_reference_audio_missing")
     indices = job.get("pronunciation_indices", [])
-    if job["synthetic_subset"] != "difficult_pronunciation" and indices:
-        raise ValueError("pronunciation_hints_belong_to_difficult_subset")
     overrides = {int(key): value for key, value in job.get("reading_overrides", {}).items()}
     rendered = teacher_text(job["student_text"], indices, overrides)
     prompt = "You are a helpful assistant.<|endofprompt|>" + job["reference_transcript"]
@@ -98,13 +90,14 @@ def synthesize_job(job: dict, model, base: Path, output: Path) -> dict:
     return {
         "id": job["id"],
         "source_type": "targeted_synthesis",
-        "synthetic_subset": job["synthetic_subset"],
-        "targeted_short": job["synthetic_subset"] == "short_utterances",
+        "synthetic_subset": job.get("synthetic_subset"),
+        "targeted_short": job.get("synthetic_subset") == "short_utterances",
         "audio": destination.name,
         "transcript": job["student_text"],
         "student_text": job["student_text"],
         "transcript_source": "trusted",
         "languages": job.get("languages", []),
+        "media_type": job.get("media_type"),
         "duration": waveform.shape[-1] / model.sample_rate,
         "teacher": {"model_family": "CosyVoice3", "pronunciation_inpainting": bool(indices)},
     }
@@ -116,3 +109,28 @@ def load_teacher(model_dir: Path):
     from cosyvoice.cli.cosyvoice import AutoModel
 
     return AutoModel(model_dir=str(model_dir), load_trt=False, load_vllm=False, fp16=False)
+
+
+def synthesize_manifest(manifest: Path, output: Path, teacher_dir: Path, *, model=None) -> dict:
+    """Generate speech from caller-supplied JSONL records."""
+    from ..pipeline import read_jsonl
+    from ..stages import write_manifest
+
+    def records():
+        nonlocal model
+        seen = set()
+        for job in read_jsonl(manifest):
+            validate_job(job)
+            if job["id"] in seen:
+                raise ValueError("duplicate_synthesis_id")
+            seen.add(job["id"])
+            if not (manifest.parent / job["reference_audio"]).is_file():
+                raise ValueError("synthesis_reference_audio_missing")
+            if model is None:
+                model = load_teacher(teacher_dir)
+            record = synthesize_job(job, model, manifest.parent, output / "audio")
+            record["audio"] = "audio/" + record["audio"]
+            yield record
+
+    path = output / "manifest.jsonl"
+    return {"generated": write_manifest(path, records()), "manifest": str(path.resolve())}

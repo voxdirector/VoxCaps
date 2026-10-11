@@ -10,23 +10,24 @@ Collected audio:
 {"id":"scene_001","audio":"media/scene.wav","media_type":"short_drama","languages":["zh"]}
 ```
 
-Synthesis job:
+## Synthesis jobs
 
-```json
-{
-  "id":"pronunciation_001",
-  "source_type":"targeted_synthesis",
-  "synthetic_subset":"difficult_pronunciation",
-  "student_text":"给予好评。",
-  "reference_audio":"references/speaker.wav",
-  "reference_transcript":"您好，欢迎来到这里。",
-  "languages":["zh"],
-  "pronunciation_indices":[0],
-  "reading_overrides":{"0":"jǐ"}
-}
-```
+`voxcaps synthesize` reads your external JSONL. Each row contains:
 
-Synthetic subsets are `elderly_timbres`, `short_utterances` and `difficult_pronunciation`. Elderly references need `reference_age_group: elderly`. Reading overrides use character offsets and tone-mark pinyin. The generated manifest retains the original `student_text`.
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `id` | string | Unique output name, using letters, digits, underscores or hyphens |
+| `student_text` | string | Text to generate |
+| `reference_audio` | string | Reference WAV path, relative to the input JSONL |
+| `reference_transcript` | string | Transcript of the reference WAV |
+
+Optional `pronunciation_indices` select character offsets for pinyin hints. `reading_overrides` maps those offsets to tone-mark pinyin. Hints affect the teacher input; the generated manifest preserves the original `student_text`.
+
+Optional `synthetic_subset` values are `elderly_timbres`, `short_utterances` and `difficult_pronunciation` for paper coverage accounting. They do not select built-in examples. To generate jobs through stage 1, also set `source_type: targeted_synthesis`. Generated WAV paths are relative to the output manifest.
+
+## Audio annotation inputs
+
+`voxcaps stage3` can annotate your external audio JSONL directly. Required fields are `id` and `audio`; optional fields are `media_type`, `languages`, `transcript`, `transcript_source` and `advertising_scenarios`. The media category selects the corresponding prompt and style matrix. Audio is sent as WAV `input_audio` to Qwen3.5-Omni.
 
 ## Preprocessing and annotation
 
@@ -54,7 +55,7 @@ Cached attributes use `attribute_annotations`:
 
 Each attribute is `null` or has a value and a verbatim evidence span from the corresponding speaker or turn description. Word alignment and tagged speech must preserve the transcript's words.
 
-Accepted records contain `waveform_target`, `annotation_audio`, `analysis_audio`, `description`, `attributes`, scores, raw annotation and correction history. Rejected records contain the ID and rejection reasons. The report records counts and the data root. A `fixture_only` flag identifies technical examples.
+Accepted records contain `waveform_target`, `annotation_audio`, `analysis_audio`, `description`, `attributes`, scores, raw annotation and correction history. Rejected records contain the ID and rejection reasons. The report records counts and the data root.
 
 ## Sorting
 

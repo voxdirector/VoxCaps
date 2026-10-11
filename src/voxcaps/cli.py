@@ -17,6 +17,10 @@ from .speech_preprocessing.audio import segment_pair
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="VoxCaps local annotation and refinement")
     commands = parser.add_subparsers(dest="command", required=True)
+    synthesize = commands.add_parser("synthesize", help="Generate CosyVoice 3 speech from JSONL")
+    synthesize.add_argument("manifest", type=Path)
+    synthesize.add_argument("--output", type=Path, required=True)
+    synthesize.add_argument("--teacher-dir", type=Path, required=True)
     setup = commands.add_parser(
         "check-models", help="Check model paths and dependencies without loading weights"
     )
@@ -74,7 +78,11 @@ def main(argv: list[str] | None = None) -> int:
     score.add_argument("--device", default="cpu")
     args = parser.parse_args(argv)
     try:
-        if args.command == "check-models":
+        if args.command == "synthesize":
+            from .coverage_design.synthesis import synthesize_manifest
+
+            result = synthesize_manifest(args.manifest, args.output, args.teacher_dir)
+        elif args.command == "check-models":
             from .model_setup import check_models
 
             config = json.loads(args.config.read_text()) if args.config else {}

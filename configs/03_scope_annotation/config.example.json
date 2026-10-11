@@ -4,7 +4,6 @@
   "model": "qwen3.5-omni-plus",
   "key_env": "DASHSCOPE_API_KEY",
   "auth_scheme": "bearer",
-  "media_format": "input_audio",
   "timeout": 360,
   "max_tokens": 4096,
   "stream": true,

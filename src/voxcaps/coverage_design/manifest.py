@@ -24,8 +24,8 @@ def coverage_metadata(record: dict) -> dict:
     if source not in {"collected", "targeted_synthesis"}:
         raise ValueError("unsupported_source_route")
     subset = record.get("synthetic_subset")
-    if source == "targeted_synthesis" and subset not in SYNTHETIC_SUBSETS:
-        raise ValueError("targeted_synthesis_requires_paper_subset")
+    if source == "targeted_synthesis" and subset is not None and subset not in SYNTHETIC_SUBSETS:
+        raise ValueError("unknown_paper_subset")
     short = record.get("targeted_short", subset == "short_utterances")
     if (
         not isinstance(short, bool)

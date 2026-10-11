@@ -22,14 +22,10 @@ TRANSPORT_KEYS = {
 }
 
 
-def transport_config(config: dict, *, audio: bool = False) -> dict:
+def transport_config(config: dict) -> dict:
     if config.get("model_family") != "Qwen3.5-Omni":
         raise ValueError("paper_annotation_requires_qwen35_omni_model_family")
-    return {
-        key: value
-        for key, value in config.items()
-        if key in TRANSPORT_KEYS or audio and key == "media_format"
-    }
+    return {key: value for key, value in config.items() if key in TRANSPORT_KEYS}
 
 
 def write_manifest(path: Path, records) -> int:
@@ -116,13 +112,21 @@ def stage3(manifest: Path, output: Path, config: dict, *, backend=None):
     from .scope_annotation.provider import request_annotation
 
     if backend is None:
-        transport = transport_config(config, audio=True)
+        transport = transport_config(config)
 
         def backend(audio, system, user):
             return request_annotation(audio, system, user, **transport)
 
-    records = (annotate_record(record, manifest.parent, backend) for record in read_jsonl(manifest))
-    return {"annotated": write_manifest(output / "manifest.jsonl", records)}
+    def records():
+        seen = set()
+        for record in read_jsonl(manifest):
+            identifier = record.get("id")
+            if not isinstance(identifier, str) or not identifier.strip() or identifier in seen:
+                raise ValueError("missing_or_duplicate_annotation_id")
+            seen.add(identifier)
+            yield annotate_record(record, manifest.parent, backend)
+
+    return {"annotated": write_manifest(output / "manifest.jsonl", records())}
 
 
 def stage4(manifest: Path, output: Path, config: dict, *, requester=None):

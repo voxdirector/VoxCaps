@@ -126,33 +126,23 @@ def request_json(
     return annotation
 
 
-def audio_content(audio: Path, media_format: str = "input_audio") -> dict:
+def audio_content(audio: Path) -> dict:
     if audio.suffix.lower() != ".wav" or audio.stat().st_size > 32 * 1024 * 1024:
         raise ValueError("annotation_requires_wav_up_to_32_mib")
     encoded = base64.b64encode(audio.read_bytes()).decode("ascii")
-    data_url = "data:audio/wav;base64," + encoded
-    if media_format in {"video_url", "audio_url"}:
-        return {"type": media_format, media_format: {"url": data_url}}
-    if media_format in {"input_audio", "input_audio_raw"}:
-        return {
-            "type": "input_audio",
-            "input_audio": {
-                "data": encoded if media_format == "input_audio_raw" else data_url,
-                "format": "wav",
-            },
-        }
-    raise ValueError("unsupported_audio_transport")
+    return {
+        "type": "input_audio",
+        "input_audio": {"data": "data:audio/wav;base64," + encoded, "format": "wav"},
+    }
 
 
-def request_annotation(
-    audio: Path, system: str, user: str, *, media_format: str = "input_audio", **kwargs
-) -> dict:
+def request_annotation(audio: Path, system: str, user: str, **kwargs) -> dict:
     return request_json(
         [
             {"role": "system", "content": system},
             {
                 "role": "user",
-                "content": [{"type": "text", "text": user}, audio_content(audio, media_format)],
+                "content": [{"type": "text", "text": user}, audio_content(audio)],
             },
         ],
         **kwargs,
