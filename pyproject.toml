@@ -11,8 +11,9 @@ readme = "README.md"
 dependencies = []
 
 [project.optional-dependencies]
-quality = ["torch>=2.1", "torchaudio>=2.1"]
-models = ["torch>=2.1", "torchaudio>=2.1", "numpy", "librosa", "soundfile", "audiofile", "audioread", "ml-collections", "PyYAML", "scipy", "six", "funasr>=1.4", "qwen-asr", "modelscope>=1.38", "huggingface-hub", "onnxruntime", "pypinyin", "scikit-learn", "umap-learn", "hdbscan"]
+synthesis = ["torch>=2.1,<2.9", "torchaudio>=2.1,<2.9", "pypinyin"]
+quality = ["torch>=2.1,<2.9", "torchaudio>=2.1,<2.9"]
+models = ["torch>=2.6,<2.9", "torchaudio>=2.6,<2.9", "numpy", "librosa", "soundfile", "audiofile", "audioread", "ml-collections", "PyYAML", "scipy", "six", "funasr>=1.4", "qwen-asr", "modelscope>=1.38", "huggingface-hub", "onnxruntime", "pypinyin", "scikit-learn", "umap-learn", "hdbscan"]
 
 [project.scripts]
 voxcaps = "voxcaps.cli:main"

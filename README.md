@@ -57,13 +57,19 @@ The original audio mixture supplies annotation and training; separated vocals su
 
 ### 1. Install
 
-Use Python 3.10 or later. Install the package and model dependencies:
+Use Python 3.10 or later. Qwen3.5-Omni audio annotation uses the package's standard-library API client:
+
+```bash
+python -m pip install -e .
+```
+
+For local preprocessing and quality models:
 
 ```bash
 python -m pip install -e '.[models]'
 ```
 
-Stage 1 also needs the [CosyVoice 3 runtime](https://github.com/QwenAudio/CosyVoice), installed separately.
+Stage 1 uses the [CosyVoice 3 environment and synthesis dependencies](docs/models.md#runtime-dependencies), installed separately.
 
 ### 2. Set up models and inputs
 

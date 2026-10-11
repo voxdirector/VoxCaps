@@ -33,18 +33,24 @@ def coverage_metadata(record: dict) -> dict:
         and (source != "targeted_synthesis" or subset != "short_utterances")
     ):
         raise ValueError("invalid_short_utterance_exemption")
-    languages = record.get("languages", [])
+    languages = record.get("languages") or []
     if isinstance(languages, str):
         languages = [languages]
     if not isinstance(languages, list) or not all(isinstance(x, str) for x in languages):
         raise ValueError("languages_must_be_strings")
+    axes = record.get("context_axes") or {}
+    if not isinstance(axes, dict):
+        raise ValueError("context_axes_must_be_an_object")
     return {
         "source_type": source,
         "synthetic_subset": subset,
         "targeted_short": short,
         "media_type": record.get("media_type"),
         "languages": languages,
-        "context_axes": {key: record[key] for key in CONTEXT_AXES if key in record},
+        "context_axes": {
+            **{key: value for key, value in axes.items() if key in CONTEXT_AXES},
+            **{key: record[key] for key in CONTEXT_AXES if key in record},
+        },
     }
 
 

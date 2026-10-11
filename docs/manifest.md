@@ -31,7 +31,7 @@ Optional `synthetic_subset` values are `elderly_timbres`, `short_utterances` and
 
 ## Preprocessing and annotation
 
-Stage 2 writes `audio` for the original mixture, `analysis_audio` for vocals, `transcript` and `turns`. Word times are relative to the clip:
+Stage 2 uses language codes `zh` and `en`; missing language metadata defaults to `zh`. It writes `audio` for the original mixture, `analysis_audio` for vocals, `transcript` and `turns`. Word times are relative to the clip:
 
 ```json
 {"speaker_id":"S1","text":"你好世界","language":"zh","end_time":1.9,"words":[

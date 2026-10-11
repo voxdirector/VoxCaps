@@ -14,17 +14,23 @@ from .prompts import (
 
 def annotation_prompts(record: dict) -> tuple[str, str]:
     scene = record.get("media_type")
+    if scene is not None and not isinstance(scene, str):
+        raise ValueError("media_type_must_be_string")
     scene = next(
         (rule["display_name"] for rule in SCENE_PROMPT_RULES if rule["name"] == scene), scene
     )
     if scene == "animation":
         scene = "动漫/动画"
-    languages = record.get("languages", [])
+    languages = record.get("languages") or []
     if isinstance(languages, str):
         languages = [languages]
-    scenarios = record.get("advertising_scenarios", [])
+    if not isinstance(languages, list) or not all(isinstance(value, str) for value in languages):
+        raise ValueError("annotation_languages_must_be_strings")
+    scenarios = record.get("advertising_scenarios") or []
     if isinstance(scenarios, str):
         scenarios = [scenarios]
+    if not isinstance(scenarios, list) or not all(isinstance(value, str) for value in scenarios):
+        raise ValueError("advertising_scenarios_must_be_strings")
     transcript = record.get("transcript")
     source = record.get("transcript_source", "asr")
     if source not in {"asr", "trusted"}:
@@ -51,8 +57,16 @@ def annotate_record(record: dict, base, backend) -> dict:
     audio = (base / record["audio"]).resolve()
     if not audio.is_file():
         raise ValueError("annotation_audio_not_found")
+    retained = {**record, "audio": str(audio)}
+    if record.get("analysis_audio"):
+        if not isinstance(record["analysis_audio"], str):
+            raise ValueError("analysis_audio_path_must_be_string")
+        analysis = (base / record["analysis_audio"]).resolve()
+        if not analysis.is_file():
+            raise ValueError("analysis_audio_not_found")
+        retained["analysis_audio"] = str(analysis)
     system, user = annotation_prompts(record)
     annotation = backend(audio, system, user)
     if set(annotation) != {"environment", "speakers", "content"}:
         raise ValueError("annotator_must_return_exactly_three_scopes")
-    return {**record, "audio": str(audio), "annotation": annotation}
+    return {**retained, "annotation": annotation}

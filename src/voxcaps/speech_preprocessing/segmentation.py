@@ -115,8 +115,8 @@ def preprocess_source(record: dict, base: Path, output: Path, models) -> list[di
                     {
                         **retained,
                         "id": record["id"] + f"_{index:06d}",
-                        "audio": str(folder / "mixture.wav"),
-                        "analysis_audio": str(folder / "vocal.wav"),
+                        "audio": str((folder / "mixture.wav").resolve()),
+                        "analysis_audio": str((folder / "vocal.wav").resolve()),
                         "duration": clip["end"] - clip["start"],
                         "turns": aligned,
                         "transcript": record["student_text"]

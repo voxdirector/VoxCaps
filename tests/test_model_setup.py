@@ -262,6 +262,7 @@ class DependencyTests(unittest.TestCase):
         with (
             tempfile.TemporaryDirectory() as folder,
             patch("voxcaps.model_setup.importlib.util.find_spec", return_value=object()),
+            patch("voxcaps.model_setup.version", return_value="2.8.0"),
         ):
             for key in (
                 "uvr_model_root",

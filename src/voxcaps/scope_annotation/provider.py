@@ -5,10 +5,15 @@ from __future__ import annotations
 import base64
 import json
 import os
+import threading
+import time
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlsplit
 from urllib.request import Request, urlopen
+
+_REQUEST_LOCK = threading.Lock()
+_NEXT_REQUEST_AT = 0.0
 
 
 def response_text(response) -> str:
@@ -110,9 +115,15 @@ def request_json(
     if stream:
         payload["stream_options"] = {"include_usage": True}
     request = Request(endpoint, data=json.dumps(payload).encode(), headers=headers, method="POST")
+    global _NEXT_REQUEST_AT
     try:
-        with urlopen(request, timeout=timeout) as response:
-            content = response_text(response)
+        with _REQUEST_LOCK:
+            delay = _NEXT_REQUEST_AT - time.monotonic()
+            if delay > 0:
+                time.sleep(delay)
+            _NEXT_REQUEST_AT = time.monotonic() + 1.0
+            with urlopen(request, timeout=timeout) as response:
+                content = response_text(response)
     except HTTPError as error:
         raise RuntimeError(f"annotation_http_error:{error.code}") from None
     except URLError:

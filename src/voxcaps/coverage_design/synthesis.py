@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from .manifest import coverage_metadata
+
 INITIALS = re.compile(r"^(zh|ch|sh|[bpmfdtnlgkhjqxrzcsyw])")
 
 
@@ -18,11 +20,15 @@ def teacher_text(
     """
     if not isinstance(student_text, str) or not student_text.strip():
         raise ValueError("student_text_is_required")
-    if len(set(indices)) != len(indices) or any(
-        not isinstance(i, int) or not 0 <= i < len(student_text) for i in indices
+    if not isinstance(indices, list) or any(
+        type(i) is not int or not 0 <= i < len(student_text) for i in indices
     ):
         raise ValueError("invalid_pronunciation_indices")
+    if len(set(indices)) != len(indices):
+        raise ValueError("invalid_pronunciation_indices")
     readings = readings or {}
+    if set(readings) - set(indices):
+        raise ValueError("pronunciation_override_index_not_selected")
     output = list(student_text)
     if indices:
         from pypinyin import Style, pinyin
@@ -61,11 +67,15 @@ def validate_job(job: dict) -> None:
 
 def synthesize_job(job: dict, model, base: Path, output: Path) -> dict:
     validate_job(job)
+    metadata = coverage_metadata({**job, "source_type": "targeted_synthesis"})
     reference = base / job["reference_audio"]
     if not reference.is_file():
         raise ValueError("synthesis_reference_audio_missing")
-    indices = job.get("pronunciation_indices", [])
-    overrides = {int(key): value for key, value in job.get("reading_overrides", {}).items()}
+    indices = job.get("pronunciation_indices") or []
+    readings = job.get("reading_overrides") or {}
+    if not isinstance(readings, dict):
+        raise ValueError("reading_overrides_must_be_an_object")
+    overrides = {int(key): value for key, value in readings.items()}
     rendered = teacher_text(job["student_text"], indices, overrides)
     prompt = "You are a helpful assistant.<|endofprompt|>" + job["reference_transcript"]
     destination = output / (job["id"] + ".wav")
@@ -88,16 +98,13 @@ def synthesize_job(job: dict, model, base: Path, output: Path) -> dict:
         str(destination), waveform.cpu(), model.sample_rate, encoding="PCM_S", bits_per_sample=24
     )
     return {
+        **metadata,
         "id": job["id"],
-        "source_type": "targeted_synthesis",
-        "synthetic_subset": job.get("synthetic_subset"),
-        "targeted_short": job.get("synthetic_subset") == "short_utterances",
         "audio": destination.name,
         "transcript": job["student_text"],
         "student_text": job["student_text"],
         "transcript_source": "trusted",
-        "languages": job.get("languages", []),
-        "media_type": job.get("media_type"),
+        "advertising_scenarios": job.get("advertising_scenarios") or [],
         "duration": waveform.shape[-1] / model.sample_rate,
         "teacher": {"model_family": "CosyVoice3", "pronunciation_inpainting": bool(indices)},
     }

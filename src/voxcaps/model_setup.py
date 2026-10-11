@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import re
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -29,6 +31,32 @@ STAGE2_IMPORTS = (
 def check_models(stage: int, config: dict, *, teacher_dir: Path | None = None) -> dict:
     checks = []
 
+    def audio_runtime():
+        versions = {}
+        parsed = {}
+        for name in ("torch", "torchaudio"):
+            try:
+                value = version(name)
+            except PackageNotFoundError:
+                value = None
+            versions[name] = value
+            match = re.match(r"^(\d+)\.(\d+)\.(\d+)", value or "")
+            parsed[name] = tuple(map(int, match.groups())) if match else None
+        minimum = (2, 6, 0) if stage == 2 else (2, 1, 0)
+        compatible = (
+            parsed["torch"] is not None
+            and parsed["torch"] == parsed["torchaudio"]
+            and minimum <= parsed["torch"] < (2, 9, 0)
+        )
+        checks.append(
+            {
+                "item": "matching supported torch/torchaudio versions",
+                "kind": "compatibility",
+                "versions": versions,
+                "ok": compatible,
+            }
+        )
+
     def dependency(name):
         try:
             found = importlib.util.find_spec(name) is not None
@@ -44,9 +72,24 @@ def check_models(stage: int, config: dict, *, teacher_dir: Path | None = None) -
         value = settings.get("endpoint", "")
         url = urlsplit(value)
         configured = (
-            url.scheme in {"http", "https"} and bool(url.netloc) and "WORKSPACE_ID" not in value
+            url.scheme in {"http", "https"}
+            and bool(url.netloc)
+            and "WORKSPACE_ID" not in value
+            and not url.username
+            and not url.password
+            and not url.fragment
         )
         checks.append({"item": "annotation endpoint", "kind": "api", "ok": configured})
+        checks.append(
+            {
+                "item": "Qwen3.5-Omni model configuration",
+                "kind": "api",
+                "ok": settings.get("model_family") == "Qwen3.5-Omni"
+                and isinstance(settings.get("model"), str)
+                and bool(settings["model"].strip())
+                and settings.get("auth_scheme", "bearer") in {"bearer", "azure"},
+            }
+        )
         checks.append(
             {
                 "item": "streaming text output",
@@ -61,8 +104,9 @@ def check_models(stage: int, config: dict, *, teacher_dir: Path | None = None) -
         )
 
     if stage == 1:
-        for name in ("torch", "torchaudio", "pypinyin", "cosyvoice"):
+        for name in ("torch", "torchaudio", "pypinyin", "cosyvoice", "matcha"):
             dependency(name)
+        audio_runtime()
         root = teacher_dir or Path("models/Fun-CosyVoice3-0.5B")
         for name in (
             "cosyvoice3.yaml",
@@ -81,6 +125,7 @@ def check_models(stage: int, config: dict, *, teacher_dir: Path | None = None) -
     elif stage == 2:
         for name in STAGE2_IMPORTS:
             dependency(name)
+        audio_runtime()
         model_name = config["uvr_model_name"]
         file(
             "UVR MDXC",
@@ -117,6 +162,7 @@ def check_models(stage: int, config: dict, *, teacher_dir: Path | None = None) -
     elif stage == 4:
         for name in ("torch", "torchaudio", "numpy", "librosa", "soundfile", "onnxruntime"):
             dependency(name)
+        audio_runtime()
         quality = config.get("quality_models", {})
         for key in ("squim_reference_audio", "dnsmos_primary_model", "dnsmos_p808_model"):
             if quality.get(key):

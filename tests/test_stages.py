@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import shutil
 import tempfile
 import types
@@ -134,9 +135,9 @@ class RefinementTests(unittest.TestCase):
 
 
 class FourStageTests(unittest.TestCase):
-    def test_all_four_stages_keep_mixture_and_run_refinement(self):
+    def test_relative_output_paths_across_all_four_stages(self):
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
+            root = Path(os.path.relpath(folder))
             write_wav(root / "source.wav")
             manifest = root / "sources.jsonl"
             manifest.write_text(

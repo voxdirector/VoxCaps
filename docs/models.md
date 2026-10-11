@@ -21,7 +21,16 @@ Run these commands from the package directory. Download complete model folders t
 python -m pip install -e '.[models]'
 ```
 
-Use matching PyTorch and TorchAudio builds. Install the [CosyVoice 3 runtime](https://github.com/QwenAudio/CosyVoice#install) separately for stage 1. Stages can use separate environments and exchange manifests. Fun-ASR-Nano needs FunASR 1.4 or later.
+Use matching PyTorch and TorchAudio 2.6 to 2.8 builds for preprocessing. TorchAudio is capped below 2.9 to retain [SQUIM](https://github.com/pytorch/audio/blob/v2.8.0/src/torchaudio/pipelines/__init__.py) and the [PCM audio IO interface](https://docs.pytorch.org/audio/2.8/generated/torchaudio.save.html). Fun-ASR-Nano needs FunASR 1.4 or later.
+
+For stage 1, follow the [CosyVoice 3 runtime installation](https://github.com/QwenAudio/CosyVoice#install) in a separate environment, then install VoxCaps with its synthesis dependencies:
+
+```bash
+python -m pip install -e '.[synthesis]'
+export PYTHONPATH="/path/to/CosyVoice:/path/to/CosyVoice/third_party/Matcha-TTS${PYTHONPATH:+:$PYTHONPATH}"
+```
+
+Replace `/path/to/CosyVoice` with your runtime checkout. Stages exchange saved manifests across environments.
 
 ## Hugging Face weights
 
@@ -81,6 +90,8 @@ SQUIM downloads its [objective weights](https://download.pytorch.org/torchaudio/
 Qwen3.5-Omni runs through the hosted API. Set `DASHSCOPE_API_KEY` using a Model Studio key for the endpoint's region.
 
 In stage-3 and stage-4 configurations, replace the sample endpoint with your workspace's endpoint. The example uses Singapore. Keep `model: qwen3.5-omni-plus`, `stream: true` and `modalities: ["text"]`. Stage 3 uses `input_audio` WAV data; stage 4 sends text for refinement.
+
+Requests run serially, with at least one second between starts. A failed request stops the batch.
 
 ## Check before a run
 

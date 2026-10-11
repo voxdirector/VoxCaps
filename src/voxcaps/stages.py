@@ -56,7 +56,13 @@ def stage1(manifest: Path, output: Path, *, teacher_dir: Path | None = None):
 
     def records():
         teacher = None
+        seen = set()
         for record in read_jsonl(manifest):
+            identifier = record.get("id")
+            if not isinstance(identifier, str) or not identifier.strip() or identifier in seen:
+                raise ValueError("missing_or_duplicate_coverage_id")
+            seen.add(identifier)
+            meta = coverage_metadata(record)
             if record.get("source_type") == "targeted_synthesis" and "audio" not in record:
                 if teacher_dir is None:
                     raise ValueError("cosyvoice3_teacher_directory_required_for_synthesis")
@@ -68,7 +74,6 @@ def stage1(manifest: Path, output: Path, *, teacher_dir: Path | None = None):
                 record["audio"] = str((manifest.parent / record["audio"]).resolve())
                 if not Path(record["audio"]).is_file():
                     raise ValueError("coverage_source_audio_missing")
-            meta = coverage_metadata(record)
             record.update(meta)
             media[meta["media_type"] or "unspecified"] += 1
             languages.update(meta["languages"])
@@ -132,6 +137,11 @@ def stage3(manifest: Path, output: Path, config: dict, *, backend=None):
 def stage4(manifest: Path, output: Path, config: dict, *, requester=None):
     from .data_refinement.quality import FilterConfig
 
+    if any(
+        (output / name).exists() for name in ("accepted.jsonl", "rejected.jsonl", "report.json")
+    ):
+        raise ValueError("output_already_exists:choose_a_new_directory")
+    filters = FilterConfig(**config.get("filters", {}))
     if requester is None and config.get("description_model"):
         from .scope_annotation.provider import request_text_json
 
@@ -174,9 +184,7 @@ def stage4(manifest: Path, output: Path, config: dict, *, requester=None):
     with tempfile.TemporaryDirectory(dir=output, prefix="refinement-input-") as scratch:
         temporary = Path(scratch) / "manifest.jsonl"
         write_manifest(temporary, records())
-        report = prepare_manifest(
-            temporary, output, FilterConfig(**config.get("filters", {})), requester=requester
-        )
+        report = prepare_manifest(temporary, output, filters, requester=requester)
         report["data_root"] = os.path.relpath(manifest.parent.resolve(), output.resolve())
         (output / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
     return report
